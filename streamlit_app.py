@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import subprocess
 from pathlib import Path
 
 # 设置页面和标题
@@ -41,11 +42,37 @@ if st.button("开始搜索 🔍"):
             
             # 构建命令
             if platform in ["Pinterest", "Medium", "Twitter"]:
-                os.system(f"python {platform.lower()}.py {username}")
+                result = subprocess.run(
+                    f"python {platform.lower()}.py {username}",
+                    shell=True,
+                    capture_output=True,
+                    text=True
+                )
             else:
-                os.system(f"python {platform.lower()}.py {username} --browser {browser}")
+                result = subprocess.run(
+                    f"python {platform.lower()}.py {username} --browser {browser}",
+                    shell=True,
+                    capture_output=True,
+                    text=True
+                )
             
             st.success("搜索完成！")
+            
+            # 显示结果
+            if result.stdout:
+                st.markdown("### 搜索结果")
+                try:
+                    # 尝试解析为JSON
+                    data = json.loads(result.stdout)
+                    st.json(data)
+                except json.JSONDecodeError:
+                    # 如果不是JSON格式，直接显示文本
+                    st.text_area("原始结果", result.stdout, height=300)
+            
+            # 如果有错误信息也显示出来
+            if result.stderr:
+                st.error("错误信息：")
+                st.code(result.stderr)
                 
         except Exception as e:
             st.error(f"发生错误: {str(e)}")
